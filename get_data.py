@@ -1,10 +1,14 @@
 from keys import *
+
+from binance.client import Client
+
 import datetime
 import pandas as pd
 import numpy as np
-import plotly.graph_objects as go #candlestick graph
 
-from binance.client import Client
+import plotly.graph_objects as go
+import plotly.express as px
+
 client = Client(api_key, api_secret)
 
 
@@ -45,3 +49,33 @@ def kline_plot(symbol, interval, start_date, end_date=None):
                 low=df['Low'],
                 close=df['Close'])])
     fig.show(renderer='vscode')
+
+# Aggregate trade structure
+# "a": 26129,         # Aggregate tradeId
+# "p": "0.01633102",  # Price
+# "q": "4.70443515",  # Quantity
+# "f": 27781,         # First tradeId
+# "l": 27781,         # Last tradeId
+# "T": 1498793709153, # Timestamp
+# "m": true,          # Was the buyer the maker?
+# "M": true           # Was the trade the best price match?
+def agg_trade_plot(symbol, start_date):
+    """Generates a scatter (line if dense enough) plot of the average price of trades since the start date.
+
+    Args:
+        symbol (String: Name of symbol pair e.g BNBBTC
+        start_date (str/int): Start date string in UTC format or timestamp in milliseconds
+    """
+    column_names = ["Agg tradeID", "Price", "Quantity", "First tradeID", "Last tradeID", "Timestamp", "Buyer Maker", "Price Match"]
+    data = []
+    for trade in list(client.aggregate_trade_iter(symbol, start_str='30 minutes ago UTC')):
+        data.append(list(trade.values()))
+    df = pd.DataFrame(data, columns=column_names)
+    df["Date"] = pd.to_datetime(df["Timestamp"], unit='ms')
+    fig = px.scatter(df[["Date","Price"]],
+                x='Date',
+                y='Price',
+                color=df["Price Match"])
+    fig.show(renderer='vscode')
+
+agg_trade_plot("BTCUSDT","1 hours ago UTC")
