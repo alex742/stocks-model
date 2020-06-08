@@ -1,8 +1,9 @@
 from keys import *
 
+import requests
 from binance.client import Client
 
-import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
 
@@ -40,8 +41,8 @@ def kline_plot(symbol, interval, start_date, end_date=None):
         data.append(kline)
 
     df = pd.DataFrame(data, columns=column_names)
-    df["Date"] = pd.to_datetime(df["Open time"], unit='ms').dt.datetime
-    print(df)
+    df["Date"] = pd.to_datetime(df["Open time"], unit='ms')#.dt.datetime
+    #print(df)
     fig = go.Figure(data=[go.Candlestick(
                 x=df['Date'],
                 open=df['Open'],
@@ -63,12 +64,12 @@ def agg_trade_plot(symbol, start_date):
     """Generates a scatter (line if dense enough) plot of the average price of trades since the start date.
 
     Args:
-        symbol (String: Name of symbol pair e.g BNBBTC
+        symbol (String): Name of symbol pair e.g BNBBTC
         start_date (str/int): Start date string in UTC format or timestamp in milliseconds
     """
     column_names = ["Agg tradeID", "Price", "Quantity", "First tradeID", "Last tradeID", "Timestamp", "Buyer Maker", "Price Match"]
     data = []
-    for trade in list(client.aggregate_trade_iter(symbol, start_str='30 minutes ago UTC')):
+    for trade in list(client.aggregate_trade_iter(symbol, start_str=start_date)):
         data.append(list(trade.values()))
     df = pd.DataFrame(data, columns=column_names)
     df["Date"] = pd.to_datetime(df["Timestamp"], unit='ms')
@@ -78,4 +79,26 @@ def agg_trade_plot(symbol, start_date):
                 color=df["Price Match"])
     fig.show(renderer='vscode')
 
-agg_trade_plot("BTCUSDT","1 hours ago UTC")
+def tradeID_at_date(symbol, date):
+    """Given a datetime returns the tradeID for the date.
+
+    Args:
+        symbol (String): Name of symbol pair e.g BNBBTC
+        date (datetime): datetime string in the form dd/mm/yyyy
+    """
+    date = int(datetime.strptime(date, '%d/%m/%Y').timestamp())
+    start_date = date * 1000 #ms conversion
+    end_date = (date + 60*59) * 1000 #ms conversion
+    r = requests.get('https://api.binance.com/api/v3/aggTrades',
+            params = {
+                "symbol" : symbol,
+                "startTime": start_date,
+                "endTime": end_date
+        })
+    response = r.json()
+    if len(response) > 0:
+        return response[0]['a']
+    else:
+        raise Exception('no trades found')
+
+print(tradeID_at_date("BTCUSDT", "08/06/2020"))
