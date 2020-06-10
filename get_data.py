@@ -97,8 +97,33 @@ def tradeID_at_date(symbol, date):
         })
     response = r.json()
     if len(response) > 0:
+        #print(response)
         return response[0]['a']
     else:
         raise Exception('no trades found')
 
-print(tradeID_at_date("BTCUSDT", "08/06/2020"))
+def plot_historical_trades(symbol, start_date, end_date=None):
+    # todo fix this
+    """Gets histroical trade data from a certain date up until the end date or if not given the current date.
+
+    Args:
+        symbol (str): Name of symbol pair e.g BNBBTC
+        interval (str): Binance Kline interval
+        start_date (str/int): Start date string in UTC format or timestamp in milliseconds
+        end_date (str/int): Optional - end date string in UTC format or timestamp in milliseconds (default will fetch everything up to now)
+    """
+    start_id = tradeID_at_date(symbol, start_date)
+    if end_date is None: end_date = int(datetime.now().timestamp())
+    data = []
+    print(end_date)
+    current_date = int(datetime.now().timestamp()) - 60*60*60
+    while current_date < end_date:
+        hist_trades = list(client.get_historical_trades(symbol=symbol, fromId = start_id))
+        for trade in hist_trades:
+            data.append(list(trade.values()))
+        print(hist_trades[len(hist_trades)-1][])
+        current_date = hist_trades[len(hist_trades)-1][0]
+        start_id = hist_trades[len(hist_trades)][1]
+
+tradeID_at_date("BTCUSDT", "08/06/2020")
+plot_historical_trades("BTCUSDT", "08/06/2020")
