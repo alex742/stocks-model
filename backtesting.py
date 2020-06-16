@@ -7,13 +7,10 @@ class Strategy:
         return
 
     def makeBuySellDecision(self):
-        confidence = 0
-        buy_limit = 0.95
-        sell_limit = -0.95
-        ALGORITHYM - includes timestep
-        PURCHASE AMOUNT
-        
-
+        if data.iloc[[-1]] < timestamp:
+            return (0,1)
+        else:
+            return (1,0)
 
 
 class Backtesting:
@@ -41,6 +38,10 @@ class Backtesting:
     def getPastSymbolData(self):
         filtered_df = df[df["Date"] < self.datetime]
         return filtered_df
+    
+    def trade(self, symbol, cash_diff, symbol_diff):
+        positions["Cash"] += cash_diff
+        positions[symbol] += symbol_diff
 
     def step(self):
         symbol_data = getPastSymbolData()
@@ -49,14 +50,13 @@ class Backtesting:
         self.datetime += self.timestep
 
     def updatePositions(self, ideal_positions):
-        # todo we need to loop through all the symbols and seel them at the market price to work out the total cash we have availible
-        # todo then loop through the ideal positions and buy the corresponding amount
-        total_cash = sum(self.positions.values * market_values) 
+        total_cash = 0
         for symbol in self.position:
-            #diff = ideal_positions[symbol] * total_cash - self.positions[symbol]
-            #symbol = ideal_positions[symbol]
-            #trade(symbol, diff)
-            
+            total_cash += symbol * getPastSymbolData().iloc[[-1]] # get the last row of the df
+        for symbol in self.position:
+            symbol_diff = ideal_positions[symbol] * total_cash - self.positions[symbol]
+            cash_diff = symbol_diff / getPastSymbolData().iloc[[-1]]
+            trade(symbol, cash_diff, symbol_diff)
         self.positions = ideal_positions
 
 
