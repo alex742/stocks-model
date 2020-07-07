@@ -30,6 +30,12 @@ def milliseconds_to_UTC(milliseconds=None):
     """
     return datetime.utcfromtimestamp(milliseconds/1000)
 
+def get_all_symbols():
+    data = []
+    for symbol in client.get_all_tickers():
+        data.append(symbol["symbol"])
+    return data
+
 #     Kline structure
 #     1499040000000,      // Open time
 #     "0.01634790",       // Open
@@ -59,13 +65,13 @@ def get_kline_data(symbol, interval, start_date, end_date=None):
         count += 1
         if count % 1000 == 0:
             print(count)
-        data.append(kline)
+        data.append(tuple(kline))
 
-    df = pd.DataFrame(data, columns=column_names)
-    df["Date"] = pd.to_datetime(df["Open time"], unit='ms')
-    return df
+    #df = pd.DataFrame(data, columns=column_names)
+    #df["Date"] = pd.to_datetime(df["Open time"], unit='ms')
+    return data
 
-print(get_kline_data("BTCUSDT", client.KLINE_INTERVAL_1MINUTE, UTC_to_milliseconds("2020-01-01 00:00:00"), UTC_to_milliseconds(str(datetime.now())[:-7])))
+#print(get_kline_data("BTCUSDT", client.KLINE_INTERVAL_1WEEK, UTC_to_milliseconds("2020-01-01 00:00:00"), UTC_to_milliseconds(str(datetime.now())[:-7])))
 
 
 # Aggregate trade structure

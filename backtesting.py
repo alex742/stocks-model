@@ -1,3 +1,6 @@
+import pandas as pd
+import numpy as np
+
 class Strategy:
     def __init__(self, buy_threshold, sell_threshold):
         self.buy_threshold = buy_threshold
@@ -8,9 +11,9 @@ class Strategy:
 
     def makeBuySellDecision(self):
         if data.iloc[[-1]] < timestamp:
-            return (0,1)
+            return (0, 1)
         else:
-            return (1,0)
+            return (1, 0)
 
 
 class Backtesting:
@@ -25,13 +28,15 @@ class Backtesting:
         self.positions = {"Cash": cash}
         for symbol in symbols: positions[symbol] = 0
         self.trades = [] # list of trade dictionaries {date, symbol, amount, buy/sell, total_amount}
+
+        self.dailyPL = [] # list of profit/loss for all days
         
         self.data = getSymbolData()
 
     def getSymbolData(self):
         column_names = [date] + self.symbols
         data = []
-        for symbol in self.symbols
+        for symbol in self.symbols:
             getData(symbol) # from get_data.py
         return pd.DataFrame(data, columns=column_names)
 
@@ -40,8 +45,8 @@ class Backtesting:
         return filtered_df
     
     def trade(self, symbol, cash_diff, symbol_diff):
-        positions["Cash"] += cash_diff
-        positions[symbol] += symbol_diff
+        self.positions["Cash"] += cash_diff
+        self.positions[symbol] += symbol_diff
 
     def step(self):
         symbol_data = getPastSymbolData()
@@ -51,9 +56,9 @@ class Backtesting:
 
     def updatePositions(self, ideal_positions):
         total_cash = 0
-        for symbol in self.position:
+        for symbol in self.positions:
             total_cash += symbol * getPastSymbolData().iloc[[-1]] # get the last row of the df
-        for symbol in self.position:
+        for symbol in self.positions:
             symbol_diff = ideal_positions[symbol] * total_cash - self.positions[symbol]
             cash_diff = symbol_diff / getPastSymbolData().iloc[[-1]]
             trade(symbol, cash_diff, symbol_diff)
