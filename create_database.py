@@ -55,4 +55,4 @@ def drop_tables(db, symbols):
 #drop_tables(database_path, get_all_symbols())
 #print(len(get_all_symbols()))
 #build_db(["BTCUSDT", "ETHUSDT", "BCHUSDT", "LTCUSDT", "XRPUSDT"])
-#insert_data(database_path, ["BTCUSDT", "ETHUSDT", "BCHUSDT", "LTCUSDT", "XRPUSDT"], client.KLINE_INTERVAL_1MINUTE, UTC_to_milliseconds("2019-01-01 00:00:00"), UTC_to_milliseconds("2020-01-01 00:00:00"))
+#insert_data(database_path, ["BTCUSDT", "ETHUSDT"], client.KLINE_INTERVAL_1MINUTE, UTC_to_milliseconds("2020-01-01 00:00:00"), UTC_to_milliseconds("2020-01-30 00:00:00"))
