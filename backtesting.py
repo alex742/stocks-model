@@ -4,11 +4,14 @@ import database_data as dd
 from get_data import milliseconds_to_UTC
 import argparse
 from decimal import *
+import matplotlib.pyplot as plt
 
 VERBOSE = True
 
 def my_floor(number, precision=0):
     return np.round(number - 0.5 * 10**(-precision), precision)
+def my_ceil(number, precision=0):
+    return np.round(number + 0.5 * 10**(-precision), precision)
 
 class Strategy:
     def __init__(self, buy_threshold, sell_threshold):
@@ -108,11 +111,10 @@ class Backtesting:
         #     num holding calculations
         # elif type(amount) == str and amount[-1] == '%':
         #     percentage 
-        print(symbol)
-        print(amount * self.data[symbol][self.data["Date"] == int(date)].values[0])
-        # print(Decimal(amount * self.data[symbol][self.data["Date"] == int(date)].values[0]))
-        print(my_floor(amount * self.data[symbol][self.data["Date"] == int(date)].values[0], 2))
-        x = input()
+        # print(symbol)
+        # print(amount * self.data[symbol][self.data["Date"] == int(date)].values[0])
+        # # print(Decimal(amount * self.data[symbol][self.data["Date"] == int(date)].values[0]))
+        # print(my_floor(amount * self.data[symbol][self.data["Date"] == int(date)].values[0], 2))
         return amount * self.data[symbol][self.data["Date"] == int(date)].values[0] # Floating point errors arise here # TODO fix this 
 
     def get_cash_to_position(self, symbol, date=None, amount=None):
@@ -122,7 +124,7 @@ class Backtesting:
             
         if amount is None:
             amount = self.total_cash
-        return my_floor(amount / self.data[symbol][self.data["Date"] == date].values[0], 8)  # Floating point errors arise here # TODO fix this 
+        return amount / self.data[symbol][self.data["Date"] == date].values[0]  # Floating point errors arise here # TODO fix this 
 
     def trade(self, symbol, cash_diff, symbol_diff):
         """Purchases
@@ -156,7 +158,10 @@ class Backtesting:
             self.total_cash += self.get_position_to_cash(symbol)
 
         for symbol in self.positions:
-            symbol_diff = self.get_cash_to_position(symbol, amount=(ideal_positions[symbol] * self.total_cash)) - self.positions[symbol]
+            if my_floor(self.get_cash_to_position(symbol, amount=(ideal_positions[symbol] * self.total_cash)) - self.positions[symbol],8) > 0:
+                symbol_diff = my_floor(self.get_cash_to_position(symbol, amount=(ideal_positions[symbol] * self.total_cash)) - self.positions[symbol],8)
+            else:
+                symbol_diff = my_ceil(self.get_cash_to_position(symbol, amount=(ideal_positions[symbol] * self.total_cash)) - self.positions[symbol],8)    
             cash_diff = self.get_position_to_cash(symbol, amount=symbol_diff)
             self.trade(symbol, cash_diff, symbol_diff)
 
@@ -166,10 +171,22 @@ class Backtesting:
         Args:
             data ([type], optional): [description]. Defaults to None.
         """
+        error_list = []
+        value_list = []
         while self.datetime <= self.end_date:
+            self.step()
             if VERBOSE and (self.datetime % (1000*60*60*24)) == 0:
                 print(f'{milliseconds_to_UTC(self.datetime)}\t{self.positions}\r', end="")
-            self.step()
+
+                value = 0
+                for symbol in self.positions:
+                    value += self.get_position_to_cash(symbol)
+                
+                move = self.get_symbol_data()[self.get_symbol_data()["Date"] == self.datetime]["BTCUSDT"].values/self.get_symbol_data()[self.get_symbol_data()["Date"] == start]["BTCUSDT"].values
+                error_list.append(- move * 100 + value)
+                value_list.append(self.get_symbol_data()[self.get_symbol_data()["Date"] == self.datetime]["BTCUSDT"].values)
+        print(error_list, value_list)
+        return [error_list, value_list]
 
         # print("\n##### POSITIONS #####\n")
         # for i in range(len(self.positions_list)):
@@ -179,14 +196,14 @@ class Backtesting:
         # for i in range(len(self.trades_list)):
         #     print(i, ":  ", self.trades_list[i])
 
-        print("\n##### CHECK #####\n")
-        start = 1577836800000
-        end = start + 1000*60*60*24*7
+        # print("\n##### CHECK #####\n")
         if VERBOSE:
             print(self.positions_list[-1])
-            print("START PRICE", self.get_symbol_data()[self.get_symbol_data()["Date"] == start]["BTCUSDT"].values)
-            print("END PRICE", self.get_symbol_data()[self.get_symbol_data()["Date"] == end]["BTCUSDT"].values)
-            print("% MOVE", self.get_symbol_data()[self.get_symbol_data()["Date"] == end]["BTCUSDT"].values/self.get_symbol_data()[self.get_symbol_data()["Date"] == start]["BTCUSDT"].values)
+            # print("START PRICE", self.get_symbol_data()[self.get_symbol_data()["Date"] == start]["BTCUSDT"].values)
+            # print("END PRICE", self.get_symbol_data()[self.get_symbol_data()["Date"] == end]["BTCUSDT"].values)
+            # print("% MOVE", move)
+            # print("FP ERROR", move * 100 - self.positions_list[-1]['Cash'])
+        
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -197,6 +214,13 @@ if __name__ == "__main__":
 
     s = Strategy(1, 2)
     start = 1577836800000
-    end = start + 1000*60*60*24*7
+    error_list = []
+    end = start + (1000*60*60*24)*10
     b = Backtesting(str(start), str(end), ["BTCUSDT", "ETHUSDT"], s, 1000*60, 100)
-    b.run_backtest()
+    error_list, value_list = b.run_backtest()
+
+    fig, axs = plt.subplots(2)
+    fig.suptitle('Vertically stacked subplots')
+    axs[0].plot(error_list)
+    axs[1].plot(value_list)
+    plt.show()
